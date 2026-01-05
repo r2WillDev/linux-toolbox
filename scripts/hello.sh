@@ -1,2 +1,2 @@
 #!/bin/bash
-echo "Linux Tollbox initialized"
+echo "Linux Toolbox initialized"
