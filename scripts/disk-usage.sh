@@ -1,91 +1,124 @@
 #!/usr/bin/env bash
-# template.sh - Template base para scripts Bash do projeto Linux Toolbox
+# Nome: disk-usage.sh
+# Descrição: Exibe resumo geral de disco (df) e lista os 10 maiores subdiretórios (du) do caminho informado.
+# Uso: ./scripts/disk-usage.sh <CAMINHO>
+# Autor: O2B Team
 #
-# Uso:
-#   ./scripts/template.sh [-h|--help] [--] [ARGS...]
-#
-# Objetivo:
-#   Fornecer estrutura mínima: shebang, modos seguros, help, logging e parsing simples.
+# Requisitos:
+#   - Funciona como usuário normal (pode apresentar erros de permissão em subpastas protegidas).
+#   - Root recomendado para varredura completa de diretórios do sistema (ex: /var).
 #
 # Saídas:
 #   0 - sucesso
-#   1 - erro de uso
-#   2 - erro de execução
+#   1 - erro de uso/parâmetros
+#   2 - erro de validação (caminho/permissão)
 
 set -euo pipefail
 IFS=$'\n\t'
 
 PROGRAM_NAME="$(basename "$0")"
-PROGRAM_DESC="Template base para scripts Bash do projeto Linux Toolbox"
 
-usage() {
-  cat <<USAGE
-${PROGRAM_NAME} - ${PROGRAM_DESC}
-
-Uso:
-  ${PROGRAM_NAME} [-h|--help] [--] [ARGS...]
-
-Opções:
-  -h, --help    Mostrar esta ajuda
-
-Exemplos:
-  ${PROGRAM_NAME} --some-arg value
-USAGE
-}
-
+# --- FUNÇÕES DE LOG (PADRÃO O2B) ---
 log_info() {
   printf '%s\n' "[INFO] ${PROGRAM_NAME}: $*" >&2
+}
+
+log_warn() {
+  printf '%s\n' "[WARN] ${PROGRAM_NAME}: $*" >&2
 }
 
 log_error() {
   printf '%s\n' "[ERROR] ${PROGRAM_NAME}: $*" >&2
 }
 
-# Parse basic options
-while [[ ${#:-} -gt 0 ]]; do
+# --- FUNÇÃO USAGE PADRONIZADA ---
+usage() {
+  cat <<USAGE
+${PROGRAM_NAME} - Analisador de uso de disco
+
+Uso:
+  ${PROGRAM_NAME} <CAMINHO>
+
+Argumentos:
+  CAMINHO       Diretório para analisar (Obrigatório)
+
+Opções:
+  -h, --help    Mostrar esta ajuda
+
+Exemplos:
+  ${PROGRAM_NAME} /var
+  ${PROGRAM_NAME} /home/devops
+USAGE
+  exit 1
+}
+
+# --- PARSING ---
+while [[ $# -gt 0 ]]; do
   case "${1:-}" in
     -h|--help)
       usage
-      exit 0
-      ;;
-    --)
-      shift
-      break
       ;;
     -*)
       log_error "Opção desconhecida: ${1}"
       usage
-      exit 1
       ;;
     *)
-      # positional args begin
+      # Encontrou o argumento posicional (caminho)
       break
       ;;
   esac
 done
 
-# Placeholder for core logic
+# --- MAIN & VALIDAÇÃO DEFENSIVA ---
 main() {
-  local path="${1:-/}"
+  # PASSO 1: Validação de Quantidade de Argumentos
+  if [[ $# -ne 1 ]]; then
+    log_error "Argumento insuficiente. Informe o diretório alvo."
+    usage
+  fi
+
+  local target_dir="${1}"
   local limit=10
 
-  if [[ ! -d "$path" ]]; then
-    log_error "Caminho inválido ou inexistente: $path"
+  # PASSO 2: Validar Existência
+  if [[ ! -e "${target_dir}" ]]; then
+    log_error "Caminho não existe: ${target_dir}"
     exit 2
   fi
 
-  log_info "Resumo geral de uso de disco (df -h)"
-  df -h
+  # PASSO 3: Validar Tipo (Deve ser diretório)
+  if [[ ! -d "${target_dir}" ]]; then
+    log_error "O caminho informado não é um diretório: ${target_dir}"
+    exit 2
+  fi
 
-  echo
-  log_info "Análise específica do caminho: $path"
-  echo "Maiores diretórios em $path (top $limit):"
-  echo
+  # PASSO 4: Validar Permissões (Leitura)
+  if [[ ! -r "${target_dir}" ]]; then
+    log_error "Sem permissão de leitura em: ${target_dir}"
+    exit 2
+  fi
 
-  du -h --max-depth=1 "$path" 2>/dev/null | sort -hr | head -n "$limit"
+  # --- SEGURANÇA E PRIVILÉGIOS ---
+  # Se o usuário não for root, avisamos que o 'du' pode falhar em subpastas
+  if [[ "$(id -u)" -ne 0 ]]; then
+    log_warn "Executando como usuário normal."
+    log_warn "O cálculo de tamanho pode ser impreciso em subpastas protegidas (Permission Denied)."
+  fi
+
+  # --- EXECUÇÃO ---
+  log_info "Alvo validado: ${target_dir}"
+
+  # Execução dos comandos (Dados reais vão para stdout)
+  log_info "Gerando resumo geral (df -h)..."
+  df -h "${target_dir}"
+
+  log_info "Calculando top ${limit} maiores subdiretórios..."
+  
+  # 2>/dev/null é mantido para não sujar o output com erros de permissão do du
+  # Uso de aspas rigoroso em "${target_dir}"
+  du -h --max-depth=1 "${target_dir}" 2>/dev/null | sort -hr | head -n "${limit}"
 
   return 0
 }
-
 
 main "$@"

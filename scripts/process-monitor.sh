@@ -1,100 +1,134 @@
 #!/usr/bin/env bash
-# template.sh - Template base para scripts Bash do projeto Linux Toolbox
+# Nome: process-monitor.sh
+# Descrição: Monitora e lista os processos que mais consomem recursos (CPU ou Memória).
+# Uso: ./scripts/process-monitor.sh <cpu|mem> [QTD]
+# Autor: O2B Team
 #
-# Uso:
-#   ./scripts/template.sh [-h|--help] [--] [ARGS...]
-#
-# Objetivo:
-#   Fornecer estrutura mínima: shebang, modos seguros, help, logging e parsing simples.
+# Requisitos:
+#   - Pacote 'procps' instalado.
+#   - Funciona como usuário normal, mas pode não ver processos de outros usuários
+#     dependendo das configurações de segurança do Kernel (hidepid).
 #
 # Saídas:
 #   0 - sucesso
-#   1 - erro de uso
-#   2 - erro de execução
+#   1 - erro de uso ou parâmetros inválidos
+#   2 - erro de dependência
 
 set -euo pipefail
 IFS=$'\n\t'
 
 PROGRAM_NAME="$(basename "$0")"
-PROGRAM_DESC="Template base para scripts Bash do projeto Linux Toolbox"
 
-usage() {
-  cat <<USAGE
-${PROGRAM_NAME} - ${PROGRAM_DESC}
-
-Uso:
-  ${PROGRAM_NAME} [-h|--help] [--] [ARGS...]
-
-Opções:
-  -h, --help    Mostrar esta ajuda
-
-Exemplos:
-  ${PROGRAM_NAME} --some-arg value
-USAGE
-}
-
+# --- FUNÇÕES DE LOG (PADRÃO O2B) ---
 log_info() {
   printf '%s\n' "[INFO] ${PROGRAM_NAME}: $*" >&2
+}
+
+log_warn() {
+  printf '%s\n' "[WARN] ${PROGRAM_NAME}: $*" >&2
 }
 
 log_error() {
   printf '%s\n' "[ERROR] ${PROGRAM_NAME}: $*" >&2
 }
 
-# Parse basic options
-while [[ ${#:-} -gt 0 ]]; do
+# --- FUNÇÃO USAGE PADRONIZADA ---
+usage() {
+  cat <<USAGE
+${PROGRAM_NAME} - Monitor de consumo de recursos
+
+Uso:
+  ${PROGRAM_NAME} <cpu|mem> [QTD]
+
+Argumentos:
+  cpu       Listar ordenado por uso de CPU (Decrescente)
+  mem       Listar ordenado por uso de Memória (Decrescente)
+  QTD       Quantidade de processos a exibir (Padrão: 10)
+
+Opções:
+  -h, --help    Mostrar esta ajuda
+
+Exemplos:
+  ${PROGRAM_NAME} cpu 5     # Top 5 consumidores de CPU
+  ${PROGRAM_NAME} mem       # Top 10 consumidores de Memória
+USAGE
+  exit 1
+}
+
+# --- PARSING ---
+while [[ $# -gt 0 ]]; do
   case "${1:-}" in
     -h|--help)
       usage
-      exit 0
-      ;;
-    --)
-      shift
-      break
       ;;
     -*)
       log_error "Opção desconhecida: ${1}"
       usage
-      exit 1
       ;;
     *)
-      # positional args begin
+      # Argumentos posicionais encontrados
       break
       ;;
   esac
 done
 
-# Placeholder for core logic
+# --- MAIN & VALIDAÇÃO DEFENSIVA ---
 main() {
   local mode="${1:-}"
   local limit="${2:-10}"
 
-  if [[ -z "$mode" ]]; then
-    log_error "Modo obrigatório: cpu ou mem"
+  # 1. Validação de Dependência
+  if ! command -v ps &> /dev/null; then
+    log_error "Comando 'ps' não encontrado. O pacote procps é necessário."
+    exit 2
+  fi
+
+  # 2. Segurança (Step 5 - Preservado)
+  if [[ "$(id -u)" -ne 0 ]]; then
+    log_warn "Executando como usuário normal. A visão de processos de outros usuários pode ser limitada."
+  fi
+
+  # 3. Validação de Argumento Obrigatório (Modo)
+  if [[ -z "${mode}" ]]; then
+    log_error "Modo obrigatório não informado."
     usage
+  fi
+
+  if [[ "${mode}" != "cpu" && "${mode}" != "mem" ]]; then
+    log_error "Modo inválido: '${mode}'. Use 'cpu' ou 'mem'."
+    usage
+  fi
+
+  # 4. Validação de Quantidade (Inteiro > 0)
+  if ! [[ "${limit}" =~ ^[0-9]+$ ]]; then
+    log_error "A quantidade deve ser um número inteiro: ${limit}"
     exit 1
   fi
 
-  if [[ "$mode" != "cpu" && "$mode" != "mem" ]]; then
-    log_error "Modo inválido: $mode (use cpu ou mem)"
+  if [[ "${limit}" -eq 0 ]]; then
+    log_error "A quantidade deve ser maior que zero."
     exit 1
   fi
 
-  if ! [[ "$limit" =~ ^[0-9]+$ ]]; then
-    log_error "Quantidade inválida: $limit"
-    exit 1
-  fi
+  # 5. Execução (Refatorada para DRY)
+  log_info "Monitorando processos por: [${mode^^}] (Top ${limit})"
 
-  log_info "Monitorando processos por $mode (top $limit)"
+  # header + limit (Aritmética bash segura)
+  local lines=$(( limit + 1 ))
+  local sort_param=""
 
-  if [[ "$mode" == "cpu" ]]; then
-    ps -eo pid,user,%cpu,%mem,comm --sort=-%cpu | head -n "$((limit + 1))"
+  # Define a estratégia de ordenação
+  if [[ "${mode}" == "cpu" ]]; then
+    sort_param="-%cpu"
   else
-    ps -eo pid,user,%cpu,%mem,comm --sort=-%mem | head -n "$((limit + 1))"
+    sort_param="-%mem"
   fi
+
+  # Execução unificada
+  # ps options: pid, user, %cpu, %mem, command
+  ps -eo pid,user,%cpu,%mem,comm --sort="${sort_param}" | head -n "${lines}"
 
   return 0
 }
-
 
 main "$@"
