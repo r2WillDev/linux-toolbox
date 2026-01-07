@@ -1,13 +1,1 @@
-# Arquivos temporários
-*.tmp
-*.swp
-*~
-
-#Logs
-*.log
-
-# Backup de scripts
-*.bak
-
-# Diretórios gerados localmente
-temp/
+*.deb

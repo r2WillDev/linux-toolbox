@@ -7,7 +7,8 @@
 # Requisitos:
 #   - Pacote 'iproute2' instalado.
 #   - Funciona como usuário normal (visibilidade parcial).
-#   - Requer root (sudo) para exibir PIDs e nomes dos processos.
+#
+#   - Executa sem root; algumas informações podem ser limitadas sem privilégios elevados.
 #
 # Saídas:
 #   0 - sucesso
@@ -82,7 +83,7 @@ main() {
 
   if [[ -z "${ss_cmd}" ]]; then
     log_error "Comando 'ss' não encontrado. O pacote 'iproute2' é necessário."
-    log_error "Instale com: sudo apt install -y iproute2"
+    log_error "Dependência ausente: iproute2. Contate o administrador do sistema."
     exit 2
   fi
 
@@ -90,14 +91,7 @@ main() {
   # Uso de Array para permitir quoting seguro: "${ss_opts[@]}"
   local ss_opts=(-tuln)
 
-  if [[ "$(id -u)" -ne 0 ]]; then
-    # Snippet de Aviso (Script Híbrido)
-    log_warn "Executando como usuário normal. Alguns detalhes (PIDs/Nomes) podem estar ocultos."
-    log_warn "Para visualização completa, considere usar 'sudo'."
-  else
-    # Se for root, adiciona -p para ver Processos
-    ss_opts+=(-p)
-  fi
+  log_warn "Executando como usuário normal. Algumas informações podem ser limitadas."
 
   # 3. Validação de Porta (Se fornecida)
   if [[ -n "${target_port}" ]]; then
@@ -114,7 +108,7 @@ main() {
     fi
 
     log_info "Verificando especificamente a porta: ${target_port}"
-    
+
     # Executa ss com array expandido e filtra (stdout limpo)
     # grep -E ":PORTA($|\s)" garante que ":22" não case com ":2222"
     "${ss_cmd}" "${ss_opts[@]}" | grep -E ":${target_port}($|\s)" || {
@@ -125,7 +119,7 @@ main() {
   else
     # 4. Modo Listagem Geral
     log_info "Listando todas as portas em escuta..."
-    
+
     # Executa ss (stdout limpo)
     "${ss_cmd}" "${ss_opts[@]}" | grep -E "State|LISTEN"
   fi

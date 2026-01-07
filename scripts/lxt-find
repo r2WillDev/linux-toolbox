@@ -6,7 +6,7 @@
 #
 # Requisitos:
 #   - Funciona como usuário normal (mas não encontrará arquivos em pastas protegidas como /root).
-#   - Use 'sudo' se precisar buscar em diretórios do sistema.
+#   - A busca pode ser limitada em diretórios protegidos por permissões.
 #
 # Saídas:
 #   0 - sucesso
@@ -83,13 +83,7 @@ main() {
   fi
 
   # 2. Aviso de Privilégio (Step 5)
-  if [[ "$(id -u)" -ne 0 ]]; then
-    # Se o diretório base for de sistema (ex: /var, /etc, /), avisa.
-    if [[ "$base_dir" == "/" || "$base_dir" =~ ^/(var|etc|root|boot) ]]; then
-      log_warn "Buscando em área de sistema como usuário normal."
-      log_warn "Arquivos protegidos serão ignorados (permissão negada)."
-    fi
-  fi
+  log_warn "Executando como usuário normal. Algumas informações podem ser limitadas."
 
   # 3. Validação Lógica
   if [[ -n "$search_name" && -n "$search_ext" ]]; then

@@ -34,10 +34,7 @@ log_error() {
 }
 
 # --- VERIFICAÇÃO DE PRIVILÉGIOS (SECURITY HARDENING) ---
-if [[ "$(id -u)" -ne 0 ]]; then
-  log_warn "Executando como usuário normal (não-root)."
-  log_warn "Caso a origem contenha arquivos protegidos, o backup pode ficar incompleto."
-fi
+log_warn "Executando como usuário normal. Algumas informações podem ser limitadas."
 
 # --- INICIALIZAÇÃO DE VARIÁVEIS GLOBAIS ---
 # Globais usam UPPER_CASE para Clean Code

@@ -100,10 +100,7 @@ main() {
 
   # --- SEGURANÇA E PRIVILÉGIOS ---
   # Se o usuário não for root, avisamos que o 'du' pode falhar em subpastas
-  if [[ "$(id -u)" -ne 0 ]]; then
-    log_warn "Executando como usuário normal."
-    log_warn "O cálculo de tamanho pode ser impreciso em subpastas protegidas (Permission Denied)."
-  fi
+  log_warn "Executando como usuário normal. Algumas informações podem ser limitadas."
 
   # --- EXECUÇÃO ---
   log_info "Alvo validado: ${target_dir}"

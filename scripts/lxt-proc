@@ -84,9 +84,7 @@ main() {
   fi
 
   # 2. Segurança (Step 5 - Preservado)
-  if [[ "$(id -u)" -ne 0 ]]; then
-    log_warn "Executando como usuário normal. A visão de processos de outros usuários pode ser limitada."
-  fi
+   log_warn "Executando como usuário normal. A visão de processos de outros usuários pode ser limitada."
 
   # 3. Validação de Argumento Obrigatório (Modo)
   if [[ -z "${mode}" ]]; then
