@@ -1,7 +1,7 @@
 # Linux Toolbox CLI 🛠️
 
 ![Version](https://img.shields.io/badge/version-1.0.0-blue)
-![ShellCheck](https://img.shields.io/badge/ShellCheck-Passing-success)
+![ShellCheck](https://github.com/r2WillDev/linux-toolbox/actions/workflows/ci.yml/badge.svg)
 ![Platform](https://img.shields.io/badge/Platform-Debian%20%7C%20Ubuntu-orange)
 
 ## 📖 Sobre
