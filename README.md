@@ -87,7 +87,7 @@ A organização dos diretórios segue o padrão Debian/Linux:
 
 ## 👨‍💻 Autor
 
-Desenvolvido por **Arthur** (DevOps Intern).
+Desenvolvido por **Arthur - O2B** (DevOps Intern).
 Projeto prático para administração de sistemas e automação.
 
 ---
