@@ -1,1 +1,22 @@
+# Build Artifacts (Pacotes gerados)
 *.deb
+*.tar.gz
+build/
+dist/
+
+# Logs e Arquivos Temporários
+*.log
+*.tmp
+*.bak
+*.old
+
+# Editores de Texto e IDEs
+.vscode/
+.idea/
+*.swp
+*~
+*.swo
+
+# Arquivos de Sistema (OS Junk)
+.DS_Store
+Thumbs.db
